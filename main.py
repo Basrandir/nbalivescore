@@ -13,34 +13,22 @@ def get_games():
 
 def parse_args(parser,args):
     if args.game == 'list':
-        live_games = []
-        completed_games = []
-        upcoming_games = []
+        games = [['Live Games'],['Completed Games'],['Upcoming Games']]
 
         for number,game in enumerate(get_games()):
             if game['class'][0] == 'live':
-                live_games.append((number,game.a['title'].split(': ')[1]))
+                games[0].append((number,game.a['title'].split(': ')[1]))
             elif game['class'][0] == 'final':
-                completed_games.append((number,game.a['title'].split(': ')[1]))
+                games[1].append((number,game.a['title'].split(': ')[1]))
             elif game['class'][0] == 'upcoming':
-                upcoming_games.append((number,game.a['title'].split(': ')[1]))
+                games[2].append((number,game.a['title'].split(': ')[1]))
         
-        if live_games: print('Live Games')
-        for number,game in live_games:
-            print(str(number + 1) + '. ' + game)
-
-        if completed_games:
-            print()
-            print('Completed Games')
-        for number,game in completed_games:
-            print(str(number + 1) + '. ' + game)
-
-        if upcoming_games:
-            print()
-            print('Upcoming Games')
-        for number,game in upcoming_games:
-            print(str(number + 1) + '. ' + game)
-    
+        for i in range(0,len(games)):
+            if len(games)-1 > i > 0 and len(games[i-1]) > 1 and len(games[i+1]) > 1: print()
+            if len(games[i]) > 1: print(games[i][0])
+            for number,game in games[i][1:]:
+                print(str(number + 1) + '. ' + game)
+            
     else:
         live_games = get_games()
 
