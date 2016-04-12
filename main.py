@@ -9,16 +9,38 @@ def get_games():
     html = requests.get(url)
     content = html.json()
     soup = BeautifulSoup(content['content'], 'lxml')
-
-    return soup.find_all(attrs={'class': 'live'})
+    return soup.find_all(attrs={'class': 'nba'})
 
 def parse_args(parser,args):
     if args.game == 'list':
-        live_games = get_games()
+        live_games = []
+        completed_games = []
+        upcoming_games = []
 
-        for number,game in enumerate(live_games):
-            print(str(number + 1) + '. ' + game.a['title'].split(': ')[1])
+        for number,game in enumerate(get_games()):
+            if game['class'][0] == 'live':
+                live_games.append((number,game.a['title'].split(': ')[1]))
+            elif game['class'][0] == 'final':
+                completed_games.append((number,game.a['title'].split(': ')[1]))
+            elif game['class'][0] == 'upcoming':
+                upcoming_games.append((number,game.a['title'].split(': ')[1]))
+        
+        if live_games: print('Live Games')
+        for number,game in live_games:
+            print(str(number + 1) + '. ' + game)
 
+        if completed_games:
+            print()
+            print('Completed Games')
+        for number,game in completed_games:
+            print(str(number + 1) + '. ' + game)
+
+        if upcoming_games:
+            print()
+            print('Upcoming Games')
+        for number,game in upcoming_games:
+            print(str(number + 1) + '. ' + game)
+    
     else:
         live_games = get_games()
 
@@ -27,12 +49,10 @@ def parse_args(parser,args):
                 print(game.a['title'].split(': ')[1])
                 break
 
-        print('Game not found')
-
 def main():
     # command line
     parser = argparse.ArgumentParser(description='Get live score updates for the NBA')
-    parser.add_argument('-g', '--game', choices=['list']+[str(x) for x in list(range(1,len(get_games())))], help='List the current live games', required=True)
+    parser.add_argument('-g', '--game', choices=['list']+[str(x) for x in list(range(1,len(get_games())+1))], help='List the current live games', required=True)
     args = parser.parse_args()
     parse_args(parser,args)
 
