@@ -3,17 +3,27 @@ import json
 import sys, argparse
 from bs4 import BeautifulSoup
 
+# Returns all current days games in an ordered list.
 def get_games():
+    
+    # The Yahoo Sports nba ticker feed updated realtime and contains scores
+    # for all games played on the day.
     url='https://ca.sports.yahoo.com/__xhr/sports/scorestrip-gs/?d=full&b=& \
             format=realtime&ncaab_post_season=true&league=nba&'
-
+    
+    # Getting the output of the ticker feed.
     html = requests.get(url)
     content = html.json()
     soup = BeautifulSoup(content['content'], 'lxml')
+    
+    # Getting the html of all the games
     current_games = soup.find_all(attrs={'class': 'nba'})
 
+    # All game information will be stored here.
     games = [['Live Games'],['Completed Games'],['Upcoming Games']]
 
+    # Going through each game and adding the appropriate information
+    # to the list above.
     for number,game in enumerate(current_games):
         
         # Get the game name. When the game goes to overtime it doesn't contain
@@ -22,6 +32,9 @@ def get_games():
         game_title = game_title.split(': ')[1] if ': ' in game_title \
                 else game_title
 
+        # 'game_time' determines the current in game time for live games and
+        # start time for upcoming games. They need to be handled seperately
+        # because the html is drastically different in the feed.
         if game['class'][0] == 'live':
             game_time = game.find(class_='period').string
             games[0].append((number,game_title,game_time))
@@ -33,13 +46,21 @@ def get_games():
 
     return games
 
+# Formats and prints the current days games.
 def list_games():
     games = get_games()
     
+    # Loops through each section of games.
     for i in range(0,len(games)):
+
+        # Prints a blank space in between sections.
         if len(games)-1 >= i > 0 and len(games[i-1]) > 1 and \
                 len(games[i]) > 1: print()
+
+        # Print section title.
         if len(games[i]) > 1: print(games[i][0])
+
+        # Loops through each game in the section; formats and prints game.
         for number,game,time in games[i][1:]:
             print(str(number+1) + '. ' + game + (' - ' if time else '') + time)
 
@@ -48,7 +69,7 @@ def parse_args(parser,args):
         list_games()
 
 def main():
-    # command line
+    # Command line arguments.
     parser = argparse.ArgumentParser(
             description='Get live score updates for the NBA')
     parser.add_argument('-g', '--game',
