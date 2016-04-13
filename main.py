@@ -15,6 +15,9 @@ def get_games():
     games = [['Live Games'],['Completed Games'],['Upcoming Games']]
 
     for number,game in enumerate(current_games):
+        
+        # Get the game name. When the game goes to overtime it doesn't contain
+        # the ': ' for some reason so we have to take that into consideration.
         game_title = game.a['title']
         game_title = game_title.split(': ')[1] if ': ' in game_title \
                 else game_title
