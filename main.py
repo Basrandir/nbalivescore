@@ -4,43 +4,54 @@ import sys, argparse
 from bs4 import BeautifulSoup
 
 def get_games():
-    url='https://ca.sports.yahoo.com/__xhr/sports/scorestrip-gs/?d=full&b=&format=realtime&ncaab_post_season=true&league=nba&'
+    url='https://ca.sports.yahoo.com/__xhr/sports/scorestrip-gs/?d=full&b=& \
+            format=realtime&ncaab_post_season=true&league=nba&'
 
     html = requests.get(url)
     content = html.json()
     soup = BeautifulSoup(content['content'], 'lxml')
-    return soup.find_all(attrs={'class': 'nba'})
+    current_games = soup.find_all(attrs={'class': 'nba'})
+
+    games = [['Live Games'],['Completed Games'],['Upcoming Games']]
+
+    for number,game in enumerate(current_games):
+        game_title = game.a['title']
+        game_title = game_title.split(': ')[1] if ': ' in game_title \
+                else game_title
+
+        if game['class'][0] == 'live':
+            game_time = game.find(class_='period').string
+            games[0].append((number,game_title,game_time))
+        elif game['class'][0] == 'final':
+            games[1].append((number,game_title,''))
+        elif game['class'][0] == 'upcoming':
+            game_start = game.em.string
+            games[2].append((number,game_title,game_start))
+
+    return games
+
+def list_games():
+    games = get_games()
+    
+    for i in range(0,len(games)):
+        if len(games)-1 >= i > 0 and len(games[i-1]) > 1 and \
+                len(games[i]) > 1: print()
+        if len(games[i]) > 1: print(games[i][0])
+        for number,game,time in games[i][1:]:
+            print(str(number+1) + '. ' + game + (' - ' if time else '') + time)
 
 def parse_args(parser,args):
     if args.game == 'list':
-        games = [['Live Games'],['Completed Games'],['Upcoming Games']]
-
-        for number,game in enumerate(get_games()):
-            if game['class'][0] == 'live':
-                games[0].append((number,game.a['title'].split(': ')[1]))
-            elif game['class'][0] == 'final':
-                games[1].append((number,game.a['title'].split(': ')[1]))
-            elif game['class'][0] == 'upcoming':
-                games[2].append((number,game.a['title'].split(': ')[1]))
-        
-        for i in range(0,len(games)):
-            if len(games)-1 > i > 0 and len(games[i-1]) > 1 and len(games[i+1]) > 1: print()
-            if len(games[i]) > 1: print(games[i][0])
-            for number,game in games[i][1:]:
-                print(str(number + 1) + '. ' + game)
-            
-    else:
-        live_games = get_games()
-
-        for number,game in enumerate(live_games):
-            if number+1 == int(args.game):
-                print(game.a['title'].split(': ')[1])
-                break
+        list_games()
 
 def main():
     # command line
-    parser = argparse.ArgumentParser(description='Get live score updates for the NBA')
-    parser.add_argument('-g', '--game', choices=['list']+[str(x) for x in list(range(1,len(get_games())+1))], help='List the current live games', required=True)
+    parser = argparse.ArgumentParser(
+            description='Get live score updates for the NBA')
+    parser.add_argument('-g', '--game',
+            help='List the current live games',
+            required=True)
+    
     args = parser.parse_args()
     parse_args(parser,args)
 
