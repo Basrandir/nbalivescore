@@ -1,5 +1,5 @@
 # nbalivescore
-Scapre live scores from Yahoo Sports
+Scrape live scores from Yahoo Sports
 
 ## Requirements
 Python 3
