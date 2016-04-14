@@ -51,19 +51,20 @@ def list_games():
     games = get_games()
     
     # Loops through each section of games.
-    for i in range(0,len(games)):
+    for i, section in enumerate(games):
+        
+        if len(section) > 1:
 
-        # Prints a blank space in between sections.
-        if len(games)-1 >= i > 0 and len(games[i-1]) > 1 and \
-                len(games[i]) > 1: print()
+            # Print section title.
+            print(section[0])
 
-        # Print section title.
-        if len(games[i]) > 1: print(games[i][0])
-
-        # Loops through each game in the section; formats and prints game.
-        for number,game,time in games[i][1:]:
-            print(str(number+1) + '. ' + game + (' - ' if time else '') + time)
-
+            # Loops through the data of each game. Formats and Prints it.
+            for number,game,time in section[1:]:
+                print(str(number+1) + '. ' + game + (' - ' if time else '') + time)
+            
+            # Prints an empty line between sections.
+            if i < len(games) -1: print()
+        
 def parse_args(parser,args):
     if args.game == 'list':
         list_games()
