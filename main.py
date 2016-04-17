@@ -15,7 +15,7 @@ def get_games():
     html = requests.get(url)
     content = html.json()
     soup = BeautifulSoup(content['content'], 'lxml')
-    
+
     # Getting the html of all the games
     current_games = soup.find_all(attrs={'class': 'nba'})
 
@@ -28,43 +28,44 @@ def get_games():
         
         # Get the game name. When the game goes to overtime it doesn't contain
         # the ': ' for some reason so we have to take that into consideration.
-        game_title = game.a['title']
-        game_title = game_title.split(': ')[1] if ': ' in game_title \
-                else game_title
+        game_title = game.a['title'].split(': ')[1]
 
         # 'game_time' determines the current in game time for live games and
         # start time for upcoming games. They need to be handled seperately
         # because the html is drastically different in the feed.
         if game['class'][0] == 'live':
-            game_time = game.find(class_='period').string
-            games[0].append((number,game_title,game_time))
+            game_time = game.find(class_='status').span.string
+            games[0].append([number,game_title,game_time])
         elif game['class'][0] == 'final':
-            games[1].append((number,game_title,''))
+            games[1].append([number,game_title,''])
         elif game['class'][0] == 'upcoming':
             game_start = game.em.string
-            games[2].append((number,game_title,game_start))
-
+            games[2].append([number,game_title,game_start])
+    
     return games
 
 # Formats and prints the current days games.
 def list_games():
-    games = get_games()
-    
-    # Loops through each section of games.
-    for i, section in enumerate(games):
+    games = []
+
+    # Loops through each section of games. Formats the data and
+    # adds it to a new list.
+    for i, section in enumerate(get_games()):
         
         if len(section) > 1:
 
-            # Print section title.
-            print(section[0])
+            # Adds section title.
+            games.append([section[0]])
 
-            # Loops through the data of each game. Formats and Prints it.
+            # Loops through the data of each game. Formats it and adds it to
+            # the list.
             for number,game,time in section[1:]:
-                print(str(number+1) + '. ' + game + (' - ' if time else '') + time)
-            
-            # Prints an empty line between sections.
-            if i < len(games) -1: print()
-        
+                games[i].append(str(number+1) +
+                        '. ' + game + (' - ' if time else '') + time)
+
+    # Adds a new line between each games and time and 2 between each section.
+    print('\n\n'.join('\n'.join(map(str,seq)) for seq in games))
+
 def parse_args(parser,args):
     if args.game == 'list':
         list_games()
