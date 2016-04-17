@@ -50,7 +50,7 @@ def list_games():
 
     # Loops through each section of games. Formats the data and
     # adds it to a new list.
-    for i, section in enumerate(get_games()):
+    for section in get_games():
         
         if len(section) > 1:
 
@@ -60,7 +60,7 @@ def list_games():
             # Loops through the data of each game. Formats it and adds it to
             # the list.
             for number,game,time in section[1:]:
-                games[i].append(str(number+1) +
+                games[len(games)-1].append(str(number+1) +
                         '. ' + game + (' - ' if time else '') + time)
 
     # Adds a new line between each games and time and 2 between each section.
