@@ -2,6 +2,7 @@ import requests
 import json
 import sys, argparse
 from bs4 import BeautifulSoup
+from tabulate import tabulate
 
 # Returns all current days games in an ordered list.
 def get_games():
@@ -28,6 +29,7 @@ def get_games():
         
         # Get the game name. When the game goes to overtime it doesn't contain
         # the ': ' for some reason so we have to take that into consideration.
+        game_id = game.a['href'][-11:-1]
         game_title = game.a['title'].split(': ')[1]
 
         # 'game_time' determines the current in game time for live games and
@@ -35,12 +37,12 @@ def get_games():
         # because the html is drastically different in the feed.
         if game['class'][0] == 'live':
             game_time = game.find(class_='status').span.string
-            games[0].append([number,game_title,game_time])
+            games[0].append([game_id,number,game_title,game_time])
         elif game['class'][0] == 'final':
-            games[1].append([number,game_title,''])
+            games[1].append([game_id,number,game_title,''])
         elif game['class'][0] == 'upcoming':
             game_start = game.em.string
-            games[2].append([number,game_title,game_start])
+            games[2].append([game_id,number,game_title,game_start])
     
     return games
 
@@ -59,16 +61,67 @@ def list_games():
 
             # Loops through the data of each game. Formats it and adds it to
             # the list.
-            for number,game,time in section[1:]:
+            for game_id,number,game,time in section[1:]:
                 games[len(games)-1].append(str(number+1) +
                         '. ' + game + (' - ' if time else '') + time)
 
     # Adds a new line between each games and time and 2 between each section.
     print('\n\n'.join('\n'.join(map(str,seq)) for seq in games))
 
+def find_game(inp):
+    for section in get_games():
+        for item in section[1:]:
+            if item[1]+1 == inp:
+                return item
+
+def list_boxscore(game):
+    url = 'https://ca.sports.yahoo.com/__xhr/sports/match/gs/?gid=nba.g.' + game[0] +'&league_id=nba&format=realtime&entity_type=unit_competition&flavor=mini&dynamicModules=MediaModuleMatchHeaderGrandSlam,MediaSportsLineScore,MediaSportsMatchLastPlay,MediaSportsPlayByPlay,MediaSportsMatchStatsByPlayer&d=full&enable_cards=1'
+
+    html = requests.get(url)
+    content = html.json()
+    soup = BeautifulSoup(content['content']['mediasportsmatchstatsbyplayer'], 'lxml')
+    
+    players = soup.find_all(attrs={'class': 'athlete'})
+    
+    header = []
+    statistics = [[],[]]
+
+    for player in players:
+        if list(player.stripped_strings)[0] == 'Players' and statistics[0]:
+            for title in player.parent.find_all('th'):
+                header.append(title.string)
+        else:
+            name = list(player.stripped_strings)[0]
+
+            if name != 'Players':
+                if not header:
+                    statistics[0].append([name])
+                else:
+                    statistics[1].append([name])
+
+            for stats in player.parent.find_all('td'):
+                if not header:
+                    if stats.string == 'DNP - Coach\'s Decision':
+                        for col in statistics[0][0]:
+                            statistics[0][len(statistics[0])-1].append(None)
+                    else:
+                        statistics[0][len(statistics[0])-1].append(stats.string if stats.has_attr('title') else '0')
+                else:
+                    if stats.string == 'DNP - Coach\'s Decision':
+                        for col in statistics[1][0]:
+                            statistics[1][len(statistics[1])-1].append(None)
+                    else:
+                        statistics[1][len(statistics[1])-1].append(stats.string if stats.has_attr('title') else '0')
+
+    print(tabulate(statistics[0],header))
+    print()
+    print(tabulate(statistics[1],header))
+                    
 def parse_args(parser,args):
     if args.game == 'list':
         list_games()
+    elif args.game.isdigit():
+        list_boxscore(find_game(int(args.game)))
 
 def main():
     # Command line arguments.
@@ -82,23 +135,3 @@ def main():
     parse_args(parser,args)
 
 if __name__ == '__main__': main()
-
-'''
-theurl = 'https://ca.sports.yahoo.com/__xhr/sports/match/gs/?gid=nba.g.2016041027&league_id=nba&format=realtime&entity_type=unit_competition&flavor=mini&dynamicModules=MediaModuleMatchHeaderGrandSlam,MediaSportsLineScore,MediaSportsMatchLastPlay,MediaSportsPlayByPlay,MediaSportsMatchStatsByPlayer&d=full&enable_cards=1'
-html = requests.get(theurl)
-content = html.json()
-
-soup = BeautifulSoup(content['content']['mediasportsmatchstatsbyplayer'], 'lxml')
-
-players = soup.find_all(attrs={'class': 'athlete'})
-
-for player in players:
-    name = list(player.stripped_strings)[0]
-    print(name)
-
-    for stats in player.parent.find_all('td'):
-        if (stats.has_attr('title')):
-            print(stats['title'] + ': ' + stats.string)
-
-    print()
-    '''
